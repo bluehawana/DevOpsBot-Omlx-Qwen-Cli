@@ -1,3 +1,7 @@
+# DevOpsBot config — local-omlx branch
+# Target: MacBook M5 running oMLX locally
+provider: omlx
+
 github:
   repo: git@github.com:volvo-group/devopsbot-config.git
   branch: main
@@ -5,21 +9,25 @@ github:
   review:
     api: https://api.github.com
     defaultBranch: main
-macStudios:
-  - name: Mac Studio 1
-    host: ip1
-    user: harvad
-    port: 22
-  - name: Mac Studio 2
-    host: ip2
-    user: harvad
-    port: 22
+
+# No remote Mac Studios in local-only mode. Leave empty so ssh.listMacStudios
+# returns []. If you want SSH targets locally, add them here.
+macStudios: []
+
+omlx:
+  host: http://localhost:8000
+  model: Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit
+  apiKey: omlx-a4qtcnh7r8e9p8vt
+
+# Ollama section retained as fallback / for ad-hoc use
 ollama:
   host: http://localhost:11434
   model: qwen3.6
+
 copilot:
   enabled: true
   licenseType: business
+
 skills:
   syncDir: .devopsbot/skills
   versionControl: true
