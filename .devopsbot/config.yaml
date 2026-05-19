@@ -1,3 +1,9 @@
+# DevOpsBot config — company-ollama branch
+# Target: two company Mac Studios running Ollama on the corporate network.
+# llm-provider.js automatically fails over across macStudios when provider=ollama
+# and more than one studio is configured.
+provider: ollama
+
 github:
   repo: git@github.com:volvo-group/devopsbot-config.git
   branch: main
@@ -5,21 +11,35 @@ github:
   review:
     api: https://api.github.com
     defaultBranch: main
+
+# BMC hostnames — fill in the second studio's BMC ID and confirm the
+# corporate domain suffix (e.g. .got.volvo.net or whatever your environment uses).
 macStudios:
   - name: Mac Studio 1
-    host: ip1
+    host: BMC-F59GQX45NH.got.volvo.net
     user: harvad
     port: 22
   - name: Mac Studio 2
-    host: ip2
+    host: BMC-XXXXXXXXXX.got.volvo.net   # TODO: replace with the second studio's BMC hostname
     user: harvad
     port: 22
+
 ollama:
-  host: http://localhost:11434
+  # Primary endpoint. Failover to the second Mac Studio is handled by
+  # llm-provider.js when macStudios has more than one entry.
+  host: http://BMC-F59GQX45NH.got.volvo.net:11434
   model: qwen3.6
+
+# oMLX section retained for reference; not used when provider=ollama.
+omlx:
+  host: http://localhost:8000
+  model: Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit
+  apiKey: omlx-a4qtcnh7r8e9p8vt
+
 copilot:
   enabled: true
   licenseType: business
+
 skills:
   syncDir: .devopsbot/skills
   versionControl: true
