@@ -1,0 +1,28 @@
+{
+  "name": "devopsbot",
+  "version": "0.1.0",
+  "description": "DevOpsBot CLI - Connects Ollama, company GitHub (Volvo Group), and Mac Studios for automated dev operations",
+  "main": "src/index.js",
+  "bin": {
+    "devopsbot": "./src/cli.js"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli.js",
+    "setup": "node src/cli.js setup",
+    "connect": "node src/cli.js connect",
+    "pull": "node src/cli.js pull"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "inquirer": "^13.0.1",
+    "ollama": "^0.6.0",
+    "ora": "^9.4.0",
+    "ssh2": "^1.16.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {},
+  "author": "Harvad Lee <hongyanab@gmail.com>",
+  "license": "MIT"
+}
