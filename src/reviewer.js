@@ -114,15 +114,16 @@ const CODE_AUDIT_PROMPT = `You are a senior code reviewer. Analyze the provided 
 - title: one-line summary (max 80 chars)
 - summary: 2-3 sentence overview of what the code does
 - score: 1-10 based on overall quality
-- bugs: array of strings describing potential bugs
-- suggestions: array of strings with improvement suggestions
-- style: array of strings with style/naming/lint suggestions
+- bugs: array of strings describing potential bugs (limit 10, be concise)
+- suggestions: array of strings with improvement suggestions (limit 10)
+- style: array of strings with style/naming/lint suggestions (limit 10)
 - security: array of strings about potential security issues (empty array if none)
 - categories: array of objects with {category, severity, title, body}
 - overall: brief 2-3 sentence overall assessment
 - fileCount: number of files analyzed
+- code: the code being reviewed, using precise and concise language
 
-Return only the JSON object, no markdown formatting. Be specific and actionable.`;
+Return only the JSON object, no markdown formatting. Each array item should be a single sentence. Be specific and actionable.`;
 
 const SUMMARY_PROMPT = `You are a senior developer. Given the following code changes, provide a concise PR description:
 
