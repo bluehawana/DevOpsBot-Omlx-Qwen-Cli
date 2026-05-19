@@ -2,10 +2,13 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
+import { execSync } from 'child_process';
 import { checkOllama, listModels } from './ollama.js';
 import { cloneConfigRepo, cloneSkillsRepo, listRemoteRepos, isGitAvailable } from './github.js';
 import { connectToMacStudio, listMacStudios } from './ssh.js';
 import { loadConfig, saveConfig } from './config.js';
+import { getPRNumber } from './reviewer.js';
+import { ping as llmPing, getProviderInfo } from './llm-provider.js';
 
 const program = new Command();
 
@@ -22,16 +25,18 @@ program
 
     console.log(chalk.bold('\n═══ DevOpsBot Status ═══\n'));
 
-    // Ollama
-    const spinner = ora('Checking Ollama...').start();
-    const ollamaStatus = await checkOllama();
+    // Active LLM provider
+    const provider = getProviderInfo();
+    const spinner = ora(`Checking ${provider.provider}...`).start();
+    const llmOk = await llmPing();
     spinner.stop();
-    console.log(chalk[ollamaStatus.ok ? 'green' : 'red'](
-      `  Ollama:      ${ollamaStatus.ok ? '✓ Connected' : '✗ Disconnected'}`
+    console.log(chalk[llmOk ? 'green' : 'red'](
+      `  LLM (${provider.provider}):  ${llmOk ? '✓ Connected' : '✗ Disconnected'}`
     ));
-    if (ollamaStatus.ok) {
-      console.log(chalk.dim(`    Model: ${ollamaStatus.model}`));
-      console.log(chalk.dim(`    Endpoint: ${config.ollama.host}`));
+    console.log(chalk.dim(`    Host:  ${provider.host}`));
+    console.log(chalk.dim(`    Model: ${provider.model}`));
+    if (provider.macStudios?.length) {
+      console.log(chalk.dim(`    Mac Studios: ${provider.macStudios.join(', ')}`));
     }
 
     // GitHub
@@ -176,7 +181,7 @@ program
     if (files && files.length > 0) {
       filesToReview = readFiles(files);
     } else {
-      // Review current changes
+      // Review current changes - try in order: diffs, staged, unstaged
       const diffs = getDiffs();
       if (diffs.ok && Object.keys(diffs.files).length > 0) {
         filesToReview = {};
@@ -188,8 +193,10 @@ program
         if (staged.length > 0) {
           filesToReview = readFiles(staged);
         } else {
-          const unstage = getUnstagedFiles();
-          filesToReview = readFiles(unstage);
+          const unstaged = getUnstagedFiles();
+          if (unstaged.length > 0) {
+            filesToReview = readFiles(unstaged);
+          }
         }
       }
     }
@@ -304,9 +311,9 @@ program
   .argument('[dir]', 'Directory to analyze')
   .option('-m, --model <model>', 'Ollama model to use')
   .action(async (dir, opts) => {
-    const { analyzeCode } = await import('./reviewer.js');
+    const { analyzeCodebase } = await import('./reviewer.js');
     const spinner = ora('Analyzing codebase...').start();
-    const result = await analyzeCode(dir, opts.model);
+    const result = await analyzeCodebase(dir || '.', opts.model);
     spinner.stop();
 
     console.log(chalk.bold('\n═══ Codebase Analysis ═══\n'));
@@ -349,12 +356,5 @@ program.parse(process.argv);
 
 // Default to status if no command
 if (process.argv.length === 2) {
-  await (import('./cli.js'));
-  const { default: CliModule } = await import('./cli.js');
-}
-
-// Default to status if no command
-if (process.argv.length === 2) {
-  await (import('./cli.js'));
-  const { default: CliModule } = await import('./cli.js');
+  program.commands[0].action();
 }

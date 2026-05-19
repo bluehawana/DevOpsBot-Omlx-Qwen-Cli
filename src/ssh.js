@@ -46,7 +46,8 @@ export function connectToMacStudio(index, interactive = false) {
 
 export async function listMacStudios() {
   const config = loadConfig();
-  return config.macStudios.map((s, i) => ({
+  const studios = Array.isArray(config.macStudios) ? config.macStudios : [];
+  return studios.map((s, i) => ({
     index: i,
     name: s.name,
     host: s.host,

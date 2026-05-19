@@ -1,7 +1,7 @@
-import ollama from 'ollama';
 import { execSync } from 'child_process';
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join, extname, relative } from 'path';
+import { generate as llmGenerate, ping as llmPing, getProviderInfo } from './llm-provider.js';
 
 // --- File Discovery ---
 
@@ -151,26 +151,29 @@ Return only JSON, no markdown.`;
 export async function reviewCode(files, model) {
   const rel = fileToRelative(files);
   const body = Object.entries(rel).map(([path, content]) => `=== ${path} ===\n${content}`).join('\n\n');
+  const prompt = `${CODE_AUDIT_PROMPT}\n\n---\n${body}`;
 
-  const response = await ollama.generate({
-    model: model || 'qwen3.6',
-    prompt: `${CODE_AUDIT_PROMPT}\n\n---\n${body}`,
-    stream: false,
-  });
-
-  return parseJSON(response.response);
+  try {
+    const response = await llmGenerate(prompt, model);
+    return parseJSON(response);
+  } catch (err) {
+    const info = getProviderInfo();
+    console.error(`LLM error (${info.provider} @ ${info.host}):`, err.message);
+    return { error: err.message };
+  }
 }
 
 export async function generatePRSummary(model) {
   const diffs = getDiffs();
   if (diffs.ok && Object.keys(diffs.files).length > 0) {
     const body = Object.entries(diffs.files).map(([file]) => getFileDiff('', file)).join('\n\n');
-    const response = await ollama.generate({
-      model: model || 'qwen3.6',
-      prompt: `${SUMMARY_PROMPT}\n\n---\n${body}`,
-      stream: false,
-    });
-    return response.response.trim();
+    const prompt = `${SUMMARY_PROMPT}\n\n---\n${body}`;
+    try {
+      const response = await llmGenerate(prompt, model);
+      return response.trim();
+    } catch (err) {
+      return `Error generating summary: ${err.message}`;
+    }
   } else {
     return 'No tracked changes to summarize.';
   }
@@ -195,23 +198,32 @@ export async function analyzeCodebase(rootDir, model) {
   }
 
   const body = Object.entries(fileToRelative(files)).map(([path, content]) => `=== ${path} ===\n${content}`).join('\n\n');
+  const prompt = `${ANALYSIS_PROMPT}\n\n---\n${body}`;
 
-  const response = await ollama.generate({
-    model: model || 'qwen3.6',
-    prompt: `${ANALYSIS_PROMPT}\n\n---\n${body}`,
-    stream: false,
-  });
-
-  return {
-    stats: {
-      total_files: files.length,
-      total_lines: totalLines,
-      file_types: Object.entries(typeCount).map(([ext, count]) => ({ extension: ext, count })),
-      average_file_size: Math.round(totalLines / files.length),
-      largest_file: largest,
-    },
-    analysis: parseJSON(response.response),
-  };
+  try {
+    const response = await llmGenerate(prompt, model);
+    return {
+      stats: {
+        total_files: files.length,
+        total_lines: totalLines,
+        file_types: Object.entries(typeCount).map(([ext, count]) => ({ extension: ext, count })),
+        average_file_size: Math.round(totalLines / files.length),
+        largest_file: largest,
+      },
+      analysis: parseJSON(response),
+    };
+  } catch (err) {
+    return {
+      stats: {
+        total_files: files.length,
+        total_lines: totalLines,
+        file_types: Object.entries(typeCount).map(([ext, count]) => ({ extension: ext, count })),
+        average_file_size: Math.round(totalLines / files.length),
+        largest_file: largest,
+      },
+      analysis: { error: err.message },
+    };
+  }
 }
 
 // --- Helpers ---
