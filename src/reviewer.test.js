@@ -1,7 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, extname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -23,7 +23,6 @@ describe('reviewer.js', () => {
     });
 
     it('only includes code file extensions', () => {
-      const { extname } = require('path');
       const files = findCodeFiles('.');
       const nonCodeExts = files.filter(f => {
         const ext = extname(f).toLowerCase();
@@ -109,19 +108,19 @@ describe('reviewer.js', () => {
   describe('end-to-end review', () => {
     it('returns structured result', async () => {
       const files = readFiles(['src/cli.js']);
-      const result = await import('./reviewer.js').then(m => m.reviewCode(files, 'qwen3.6'));
+      const result = await import('./reviewer.js').then(m => m.reviewCode(files, 'Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit'));
       // result is a Promise
       assert.ok(result, 'review result should exist');
     });
   });
 
   describe('A/B model comparison', () => {
-    it('reviews same file with qwen3.6 and different results', async () => {
+    it('reviews same file with huihui and different results', async () => {
       const files = readFiles(['src/reviewer.js']);
       const { reviewCode } = await import('./reviewer.js');
       const [modelA, modelB] = await Promise.all([
-        reviewCode(files, 'qwen3.6'),
-        reviewCode(files, 'qwen3.6'),
+        reviewCode(files, 'Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit'),
+        reviewCode(files, 'Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit'),
       ]);
       assert.ok(modelA.title, 'model A should have title');
       assert.ok(modelB.title, 'model B should have title');

@@ -229,15 +229,19 @@ export async function analyzeCodebase(rootDir, model) {
 // --- Helpers ---
 
 function parseJSON(text) {
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  // If already an object (e.g., from reviewCode's result), return it as-is
+  if (typeof text === 'object' && text !== null) return text;
+
+  const textStr = String(text);
+  const jsonMatch = textStr.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
       return JSON.parse(jsonMatch[0]);
     } catch {
-      return { error: text };
+      return { error: textStr };
     }
   }
-  return { error: text };
+  return { error: textStr };
 }
 
-export { CODE_AUDIT_PROMPT, SUMMARY_PROMPT, ANALYSIS_PROMPT, parseJSON };
+export { CODE_AUDIT_PROMPT, SUMMARY_PROMPT, ANALYSIS_PROMPT, parseJSON, fileToRelative };
