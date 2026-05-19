@@ -1,5 +1,9 @@
-# DevOpsBot config — local-omlx branch
-# Target: MacBook M5 running oMLX locally
+# DevOpsBot config — max5 branch
+# Target: MacBook M5 — can run either local oMLX (default) or local Ollama.
+#
+# Default backend is oMLX. To use local Ollama instead, either:
+#   - run with: DEVOPSBOT_PROVIDER=ollama node src/cli.js …
+#   - or change `provider:` below to "ollama" and tweak the ollama section.
 provider: omlx
 
 github:
