@@ -27,11 +27,23 @@ npm run setup
 ## Usage
 
 ```bash
-devopsbot            # Show status of all connections
-devopsbot setup      # Configure GitHub and Mac Studio connections
-devopsbot connect    # Connect to a Mac Studio
-devopsbot pull       # Pull latest config/skills from company GitHub
+devopsbot                  # Show status of all connections
+devopsbot setup            # Configure GitHub and Mac Studio connections
+devopsbot connect [index]  # Connect to a Mac Studio
+devopsbot pull             # Pull latest config/skills from company GitHub
 ```
+
+## Code Review Tools
+
+```bash
+devopsbot review [files...]   # LLM-powered code review
+devopsbot review:staged       # Review staged git changes
+devopsbot review:github [PR#] # Review a GitHub PR
+devopsbot analyze [dir]       # Deep codebase analysis
+devopsbot summary             # Generate PR summary from diffs
+```
+
+All review commands use `-m <model>` to select a different Ollama model (default: `qwen3.6`).
 
 ## Configuration
 
