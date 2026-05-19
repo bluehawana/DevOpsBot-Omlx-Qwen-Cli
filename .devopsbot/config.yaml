@@ -1,5 +1,5 @@
-# DevOpsBot config — company-ollama branch
-# Target: two company Mac Studios running Ollama on the corporate network.
+# DevOpsBot config — Lundby branch
+# Target: two company Mac Studios running Ollama at Volvo Lundby (Gothenburg).
 # llm-provider.js automatically fails over across macStudios when provider=ollama
 # and more than one studio is configured.
 provider: ollama
