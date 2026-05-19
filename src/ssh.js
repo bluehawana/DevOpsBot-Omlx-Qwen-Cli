@@ -1,4 +1,5 @@
 import { Client } from 'ssh2';
+import { exec } from 'child_process';
 import { loadConfig } from './config.js';
 
 export function connectToMacStudio(index, interactive = false) {

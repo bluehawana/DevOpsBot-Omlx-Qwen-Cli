@@ -161,7 +161,197 @@ program
     console.log('');
   });
 
+// --- Review Commands ---
+
+program
+  .command('review')
+  .description('Code review with Ollama')
+  .argument('[files...]', 'Files to review (default: current changes)')
+  .option('-m, --model <model>', 'Ollama model to use')
+  .action(async (files, opts) => {
+    const { reviewCode, getDiffs, getStagedFiles, getFileDiff, readFiles } = await import('./reviewer.js');
+
+    let filesToReview;
+
+    if (files && files.length > 0) {
+      filesToReview = readFiles(files);
+    } else {
+      // Review current changes
+      const diffs = getDiffs();
+      if (diffs.ok && Object.keys(diffs.files).length > 0) {
+        filesToReview = {};
+        for (const file of Object.keys(diffs.files)) {
+          filesToReview[file] = getFileDiff('', file);
+        }
+      } else {
+        const staged = getStagedFiles();
+        if (staged.length > 0) {
+          filesToReview = readFiles(staged);
+        } else {
+          const unstage = getUnstagedFiles();
+          filesToReview = readFiles(unstage);
+        }
+      }
+    }
+
+    if (!filesToReview || Object.keys(filesToReview).length === 0) {
+      console.log(chalk.yellow('\nNo files to review.'));
+      return;
+    }
+
+    const spinner = ora('Reviewing code...').start();
+    const result = await reviewCode(filesToReview, opts.model);
+    spinner.stop();
+
+    // --- Output ---
+    console.log(chalk.bold('\n═══ Code Review ═══\n'));
+    console.log(chalk.cyan(`  ${result.title}`));
+    console.log(chalk.dim(`  ${result.summary}\n`));
+
+    const score = result.score || '—';
+    const scoreColor = result.score >= 8 ? 'green' : result.score >= 6 ? 'yellow' : 'red';
+    console.log(chalk.bold(chalk[scoreColor](`  Score: ${score}/10`)));
+
+    if (result.bugs?.length) {
+      console.log(chalk.red('  Bugs:'));
+      for (const b of result.bugs) console.log(chalk.red(`    ⛔ ${b}`));
+      console.log('');
+    }
+
+    if (result.suggestions?.length) {
+      console.log(chalk.blue('  Suggestions:'));
+      for (const s of result.suggestions) console.log(chalk.blue(`    💡 ${s}`));
+      console.log('');
+    }
+
+    if (result.security?.length) {
+      console.log(chalk.yellow('  Security:'));
+      for (const s of result.security) console.log(chalk.yellow(`    ⚠️  ${s}`));
+      console.log('');
+    }
+
+    if (result.categories?.length) {
+      console.log(chalk.magenta('  Categories:'));
+      for (const c of result.categories) {
+        const sev = c.severity === 'high' ? chalk.red(c.severity.toUpperCase()) :
+                    c.severity === 'medium' ? chalk.yellow(c.severity.toUpperCase()) :
+                    chalk.dim(c.severity.toUpperCase());
+        console.log(`    [${sev}] ${c.title}`);
+        if (c.body) console.log(chalk.dim(`      ${c.body}`));
+      }
+      console.log('');
+    }
+
+    if (result.overall) {
+      console.log(chalk.bold('  Overall:'));
+      console.log(chalk.dim(`  ${result.overall}\n`));
+    }
+  });
+
+program
+  .command('review:staged')
+  .description('Review staged changes')
+  .option('-m, --model <model>', 'Ollama model to use')
+  .action(async (opts) => {
+    const { reviewCode, getStagedFiles, readFiles } = await import('./reviewer.js');
+    const files = getStagedFiles();
+    if (!files.length) { console.log(chalk.yellow('\nNo staged changes.')); return; }
+    const spinner = ora('Reviewing staged files...').start();
+    const result = await reviewCode(readFiles(files), opts.model);
+    spinner.stop();
+    console.log(chalk.bold('\n═══ Staged Changes Review ═══\n'));
+    console.log(chalk.cyan(`  ${result.title}`));
+    console.log(chalk.dim(`  ${result.summary}\n`));
+    console.log(chalk.bold(chalk[result.score >= 8 ? 'green' : 'yellow'](`  Score: ${result.score}/10`)));
+  });
+
+program
+  .command('review:github')
+  .description('Review a GitHub PR')
+  .argument('[PR#]', 'Pull request number (default: current branch)')
+  .option('-m, --model <model>', 'Ollama model to use')
+  .action(async (pr, opts) => {
+    const { reviewCode, getDiffs, getFileDiff } = await import('./reviewer.js');
+    const prNum = parseInt(pr, 10) || getPRNumber();
+    const url = prNum ? `pull/${prNum}/files` : 'files';
+    const spinner = ora('Fetching PR data...').start();
+
+    try {
+      const raw = execSync(`gh pr view ${prNum} --json title,body,headRepositoryOwner,url 2>/dev/null`, { encoding: 'utf-8' });
+      spinner.succeed(`PR #${prNum}: ${raw.trim()}`);
+    } catch {
+      spinner.fail('Could not fetch PR. Is gh CLI installed?');
+    }
+
+    spinner.start('Reviewing PR changes...');
+    const diffs = getDiffs('origin/main');
+    const files = {};
+    for (const file of Object.keys(diffs.files)) {
+      files[file] = getFileDiff('', file);
+    }
+    const result = await reviewCode(files, opts.model);
+    spinner.stop();
+
+    console.log(chalk.bold('\n═══ GitHub PR Review ═══\n'));
+    console.log(chalk.cyan(`  ${result.title}`));
+    console.log(chalk.dim(`  ${result.summary}\n`));
+    console.log(chalk.bold(chalk[result.score >= 8 ? 'green' : 'yellow'](`  Score: ${result.score}/10`)));
+  });
+
+program
+  .command('analyze')
+  .description('Deep codebase analysis')
+  .argument('[dir]', 'Directory to analyze')
+  .option('-m, --model <model>', 'Ollama model to use')
+  .action(async (dir, opts) => {
+    const { analyzeCode } = await import('./reviewer.js');
+    const spinner = ora('Analyzing codebase...').start();
+    const result = await analyzeCode(dir, opts.model);
+    spinner.stop();
+
+    console.log(chalk.bold('\n═══ Codebase Analysis ═══\n'));
+    const s = result.stats;
+    console.log(chalk.cyan(`  Files: ${s.total_files}  Lines: ${s.total_lines}`));
+    console.log(chalk.dim(`  Avg size: ${s.average_file_size} lines  Largest: ${s.largest_file.name} (${s.largest_file.lines} lines)`));
+    console.log('');
+    console.log(chalk.bold('  File types:'));
+    for (const t of s.file_types) console.log(chalk.dim(`    ${t.extension}: ${t.count}`));
+    console.log('');
+
+    if (result.analysis.issues?.length) {
+      console.log(chalk.red('  Issues:'));
+      for (const i of result.analysis.issues) console.log(chalk.red(`    [${i.severity}] ${i.file}: ${i.message}`));
+      console.log('');
+    }
+
+    if (result.analysis.recommendations?.length) {
+      console.log(chalk.blue('  Recommendations:'));
+      for (const r of result.analysis.recommendations) console.log(chalk.blue(`    • ${r}`));
+      console.log('');
+    }
+  });
+
+program
+  .command('summary')
+  .description('Generate PR summary from current changes')
+  .option('-m, --model <model>', 'Ollama model to use')
+  .action(async (opts) => {
+    const { generatePRSummary } = await import('./reviewer.js');
+    const spinner = ora('Generating summary...').start();
+    const text = await generatePRSummary(opts.model);
+    spinner.stop();
+    console.log(chalk.bold('\n═══ PR Summary ═══\n'));
+    console.log(text);
+    console.log('');
+  });
+
 program.parse(process.argv);
+
+// Default to status if no command
+if (process.argv.length === 2) {
+  await (import('./cli.js'));
+  const { default: CliModule } = await import('./cli.js');
+}
 
 // Default to status if no command
 if (process.argv.length === 2) {

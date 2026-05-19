@@ -1,0 +1,25 @@
+github:
+  repo: git@github.com:volvo-group/devopsbot-config.git
+  branch: main
+  skillsRepo: git@github.com:volvo-group/devopsbot-skills.git
+  review:
+    api: https://api.github.com
+    defaultBranch: main
+macStudios:
+  - name: Mac Studio 1
+    host: ip1
+    user: harvad
+    port: 22
+  - name: Mac Studio 2
+    host: ip2
+    user: harvad
+    port: 22
+ollama:
+  host: http://localhost:11434
+  model: qwen3.6
+copilot:
+  enabled: true
+  licenseType: business
+skills:
+  syncDir: .devopsbot/skills
+  versionControl: true
