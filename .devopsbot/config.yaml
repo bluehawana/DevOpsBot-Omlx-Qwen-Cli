@@ -1,9 +1,6 @@
-# DevOpsBot config — max5 branch
-# Target: MacBook M5 — can run either local oMLX (default) or local Ollama.
-#
-# Default backend is oMLX. To use local Ollama instead, either:
-#   - run with: DEVOPSBOT_PROVIDER=ollama node src/cli.js …
-#   - or change `provider:` below to "ollama" and tweak the ollama section.
+# DevOpsBot config
+# — max5 defaults to oMLX; Lundby (company) defaults to ollama.
+# Switch branch or set DEVOPSBOT_PROVIDER=ollama as needed.
 provider: omlx
 
 github:
@@ -14,18 +11,25 @@ github:
     api: https://api.github.com
     defaultBranch: main
 
-# No remote Mac Studios in local-only mode. Leave empty so ssh.listMacStudios
-# returns []. If you want SSH targets locally, add them here.
-macStudios: []
+# Company Mac Studios — used when provider=ollama (Lundby)
+macStudios:
+  - name: Mac Studio 1
+    host: BMC-F59GQX45NH.got.volvo.net
+    user: harvad
+    port: 22
+  - name: Mac Studio 2
+    host: BMC-XXXXXXXXXX.got.volvo.net   # TODO: replace with second studio's BMC hostname
+    user: harvad
+    port: 22
 
 omlx:
   host: http://localhost:8000
   model: Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit
   apiKey: omlx-a4qtcnh7r8e9p8vt
 
-# Ollama section retained as fallback / for ad-hoc use
 ollama:
-  host: http://localhost:11434
+  # Primary endpoint. Failover handled by llm-provider.js when multiple studios.
+  host: http://BMC-F59GQX45NH.got.volvo.net:11434
   model: qwen3.6
 
 copilot:
