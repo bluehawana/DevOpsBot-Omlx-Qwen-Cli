@@ -33,7 +33,7 @@ const DEFAULT_CONFIG = {
   omlx: {
     host: 'http://localhost:8000',
     model: 'Huihui-Qwen3.6-35B-A3B-Claude-4.7-Opus-abliterated-mlx-8bit',
-    apiKey: 'omlx-a4qtcnh7r8e9p8vt',
+    apiKey: process.env.DEVOPSBOT_OMLX_API_KEY || 'omlx-a4qtcnh7r8e9p8vt',
   },
   copilot: {
     enabled: true,
